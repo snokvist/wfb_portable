@@ -1,6 +1,6 @@
 # ── compiler flags ──────────────────────────────────────
 CC      ?= gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party
+CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party 
 LDFLAGS :=
 
 # ── source lists ────────────────────────────────────────
@@ -17,6 +17,12 @@ NODE_SRC    := src/node/ws_client.c
 COMMON_OBJ  := $(COMMON_SRC:.c=.o)
 MASTER_OBJ  := $(MASTER_SRC:.c=.o)
 NODE_OBJ    := $(NODE_SRC:.c=.o)
+
+CIVET_SRC := third_party/civetweb/civetweb.c
+COMMON_SRC += $(CIVET_SRC)
+CFLAGS    += -DUSE_IPV6
+LDFLAGS   += -lpthread -ldl
+
 
 # ── output locations ───────────────────────────────────
 OUT_DIR  := build
