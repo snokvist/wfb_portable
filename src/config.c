@@ -8,7 +8,8 @@
 /* ------------------------------------------------------------------ */
 /* internal helpers */
 
-static cJSON *root = NULL;          /* whole document stays resident */
+static cJSON *root = NULL;
+const cJSON *config_get_root_cjson(void){ return root; }
 
 static const cJSON *find_profile(const char *name) {
     const cJSON *profiles = cJSON_GetObjectItemCaseSensitive(root, "profiles");
