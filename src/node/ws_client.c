@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     int fd = tcp_connect(master_ip, master_port);
     if (fd < 0) { perror("connect"); return 1; }
 
-    if (ws_handshake(fd, "192.168.2.10", "/ws") != 0) {
+    if (ws_handshake(fd, "master_ip", "/ws") != 0) {
         fprintf(stderr, "handshake failed\n"); close(fd); return 1;
     }
     printf("[NODE] WS handshake OK\n");
