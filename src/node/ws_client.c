@@ -28,7 +28,6 @@ static int tcp_connect(const char *host, const char *port)
 
 static int ws_handshake(int fd, const char *host, const char *path)
 {
-    /* Constant base-64 nonce (dummy). Valid per RFC if server accepts it. */
     const char *b64_nonce = "dGhpc2lzbXlub25jZQ==";
 
     dprintf(fd,
@@ -40,11 +39,18 @@ static int ws_handshake(int fd, const char *host, const char *path)
         "Sec-WebSocket-Version: 13\r\n\r\n",
         path, host, b64_nonce);
 
-    char resp[256];
-    ssize_t n = read(fd, resp, sizeof(resp) - 1);
-    if (n <= 0) return -1;
-    resp[n] = '\0';
-    return (strstr(resp, "101") != NULL) ? 0 : -1;
+    /* read until double-CRLF or 4 kB max */
+    char buf[4096];
+    size_t off = 0;
+    while (off < sizeof(buf) - 1) {
+        ssize_t n = read(fd, buf + off, sizeof(buf) - 1 - off);
+        if (n <= 0) return -1;
+        off += (size_t)n;
+        buf[off] = '\0';
+        if (strstr(buf, "\r\n\r\n"))
+            break;                       /* end of headers */
+    }
+    return (strstr(buf, " 101 ") != NULL) ? 0 : -1;
 }
 
 /* minimal unmasked TEXT frame (payload ≤125) */
