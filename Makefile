@@ -11,7 +11,7 @@ COMMON_SRC  := \
     src/proc_mgr.c \
     third_party/cJSON.c
 
-MASTER_SRC  := src/master_main.c
+MASTER_SRC  := src/master_main.c src/master/ws_server.c
 NODE_SRC    := src/node/ws_client.c
 
 COMMON_OBJ  := $(COMMON_SRC:.c=.o)
