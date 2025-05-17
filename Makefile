@@ -19,7 +19,7 @@ COMMON_OBJ  := $(COMMON_SRC:.c=.o)
 MASTER_OBJ  := $(MASTER_SRC:.c=.o)
 NODE_OBJ    := $(NODE_SRC:.c=.o)
 
-CIVET_SRC := third_party/civetweb/civetweb.c
+CIVET_SRC := third_party/civetweb.c
 COMMON_SRC += $(CIVET_SRC)
 
 # ── output locations ───────────────────────────────────
