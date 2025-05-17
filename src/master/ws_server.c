@@ -6,40 +6,51 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Older Civetweb headers do not export this constant */
+/* ---- compatibility layer ------------------------------------------ */
 #ifndef WEBSOCKET_OPCODE_TEXT
 #define WEBSOCKET_OPCODE_TEXT 1
 #endif
 
-/* Scratch per connection ------------------------------------------------ */
-struct conn_ctx {
-    char node_id[64];
-};
+/* Newer Civetweb provides mg_send_websocket_frame(), older versions
+   expose mg_websocket_write().  Detect and bridge. */
+#if !defined(HAVE_MG_WEBSOCKET_WRITE) && defined(mg_send_websocket_frame)
+/* Header has only the new symbol — create a thin wrapper */
+static int mg_websocket_write(struct mg_connection *c,
+                              int opcode,
+                              const char *data,
+                              size_t len)
+{
+    return mg_send_websocket_frame(c, opcode, data, len);
+}
+#endif
+/* ------------------------------------------------------------------- */
 
-/* Forward decls matching Civetweb prototypes --------------------------- */
-static int  cb_connect(const struct mg_connection *c, void *cbdata);
-static void cb_ready  (struct mg_connection *c, void *cbdata);
-static int  cb_data   (struct mg_connection *c, int flags,
-                       char *data, size_t len, void *cbdata);
-static void cb_close  (const struct mg_connection *c, void *cbdata);
+/* Per-connection scratch */
+struct conn_ctx { char node_id[64]; };
 
-/* ------------------- connect ----------------------------------------- */
+/* Forward declarations */
+static int  cb_connect(const struct mg_connection *, void *);
+static void cb_ready  (struct mg_connection *, void *);
+static int  cb_data   (struct mg_connection *, int, char *, size_t, void *);
+static void cb_close  (const struct mg_connection *, void *);
+
+/* ------------------ connect ---------------------------------------- */
 static int cb_connect(const struct mg_connection *c, void *cbdata)
 {
     (void)cbdata;
     struct conn_ctx *ctx = calloc(1, sizeof(*ctx));
     mg_set_user_connection_data(c, ctx);
-    return 0;                       /* accept */
+    return 0;           /* accept */
 }
 
-/* ------------------- ready ------------------------------------------- */
+/* ------------------ ready ------------------------------------------ */
 static void cb_ready(struct mg_connection *c, void *cbdata)
 {
     (void)c; (void)cbdata;
     printf("[MASTER] WS ready\n");
 }
 
-/* ------------------- data -------------------------------------------- */
+/* ------------------ data ------------------------------------------- */
 static int cb_data(struct mg_connection *c, int flags,
                    char *data, size_t len, void *cbdata)
 {
@@ -59,7 +70,7 @@ static int cb_data(struct mg_connection *c, int flags,
 
         printf("[MASTER] HELLO from %s\n", ctx->node_id);
 
-        /* --- build stub config payload --- */
+        /* ── stub config payload ── */
         cJSON *pl = cJSON_CreateObject();
         cJSON_AddStringToObject(pl, "note", "config TBD");
 
@@ -77,20 +88,20 @@ static int cb_data(struct mg_connection *c, int flags,
     return 1;                       /* keep socket open */
 }
 
-/* ------------------- close ------------------------------------------- */
+/* ------------------ close ------------------------------------------ */
 static void cb_close(const struct mg_connection *c, void *cbdata)
 {
-    (void)cbdata;
+    (void)c; (void)cbdata;
     struct conn_ctx *ctx = mg_get_user_connection_data(c);
     printf("[MASTER] WS closed (%s)\n",
            ctx && ctx->node_id[0] ? ctx->node_id : "unknown");
     free(ctx);
 }
 
-/* ------------------- bootstrap --------------------------------------- */
+/* ------------------ bootstrap -------------------------------------- */
 int ws_server_start(const char *json_path, const char *port)
 {
-    (void)json_path;    /* for future: dynamic config */
+    (void)json_path;      /* reserved for later */
 
     const char *opts[] = {
         "listening_ports", port,
@@ -108,7 +119,8 @@ int ws_server_start(const char *json_path, const char *port)
                              cb_ready,
                              cb_data,
                              cb_close,
-                             NULL);      /* per-URI cbdata */
+                             NULL);             /* cbdata */
+
     printf("[MASTER] Civetweb WS listening on :%s\n", port);
     return 0;
 }
