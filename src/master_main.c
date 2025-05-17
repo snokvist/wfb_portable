@@ -27,8 +27,6 @@ static char *subst_priv_placeholder(const char *cmd, const char *path)
 
 int main(int argc, char **argv)
 {
-    if (ws_server_start(json_path, "8080") != 0)
-    return 1;
     
     const char *json_path = (argc > 1) ? argv[1] : "fleet.json";
 
@@ -38,6 +36,10 @@ int main(int argc, char **argv)
     }
     printf("[MASTER] config loaded: %s\n", json_path);
 
+    if (ws_server_start(json_path, "8080") != 0)
+    return 1;
+
+    
     /* fetch private key B64 from gs_master profile */
     const char *b64 = config_get_profile_str("gs_master", "private_key_b64");
     if (!b64) {
