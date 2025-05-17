@@ -80,6 +80,12 @@ const char **config_get_init_script(const char *profile, size_t *len_out)
     return cache;
 }
 
+const char *config_get_profile_str(const char *profile, const char *field)
+{
+    const cJSON *val = get_profile_field(profile, field);
+    return (val && cJSON_IsString(val)) ? val->valuestring : NULL;
+}
+
 const char *config_get_command(const char *profile, const char *cmd)
 {
     const cJSON *cmds = get_profile_field(profile, "commands");
