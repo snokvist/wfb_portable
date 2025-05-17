@@ -6,35 +6,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Per-connection scratch */
+/* ------------------------------------------------------------------ */
+/* Per-connection scratch storage                                      */
 struct conn_ctx {
     char node_id[64];
 };
 
-/* Forward declarations ------------------------------------------------ */
+/* Forward declarations (Civetweb callback types) -------------------- */
 static int  cb_connect(const struct mg_connection *conn, void *cbdata);
 static void cb_ready  (struct mg_connection *conn, void *cbdata);
 static int  cb_data   (struct mg_connection *conn, int flags,
                        char *data, size_t len, void *cbdata);
 static void cb_close  (const struct mg_connection *conn, void *cbdata);
 
-/* ---------------------- connect handler ----------------------------- */
+/* ------------------------------------------------------------------ */
 static int cb_connect(const struct mg_connection *conn, void *cbdata)
 {
-    (void)conn; (void)cbdata;
+    (void)cbdata; (void)conn;
     struct conn_ctx *ctx = calloc(1, sizeof(*ctx));
-    mg_set_user_connection_data(conn, ctx);   /* stash pointer */
-    return 0;   /* accept */
+    mg_set_user_connection_data(conn, ctx);
+    return 0;               /* accept the connection */
 }
 
-/* ---------------------- ready handler ------------------------------- */
 static void cb_ready(struct mg_connection *conn, void *cbdata)
 {
     (void)conn; (void)cbdata;
     printf("[MASTER] WS ready\n");
 }
 
-/* ---------------------- data handler -------------------------------- */
 static int cb_data(struct mg_connection *conn, int flags,
                    char *data, size_t len, void *cbdata)
 {
@@ -48,7 +47,6 @@ static int cb_data(struct mg_connection *conn, int flags,
     const char *type = ws_get_type(root);
 
     if (type && strcmp(type, WS_HELLO) == 0) {
-        /* cache node_id */
         const char *nid =
             cJSON_GetStringValue(cJSON_GetObjectItem(root, "node_id"));
         if (nid)
@@ -56,36 +54,39 @@ static int cb_data(struct mg_connection *conn, int flags,
 
         printf("[MASTER] HELLO from %s\n", ctx->node_id);
 
-        /* demo config frame */
+        /* ---- send stub config frame ---- */
         cJSON *payload = cJSON_CreateObject();
         cJSON_AddStringToObject(payload, "note", "config TBD");
 
-        char *frame = ws_wrap_payload(
-                          WS_CONFIG, ctx->node_id,
-                          ws_next_seq(), payload);
+        char *frame = ws_wrap_payload(WS_CONFIG,
+                                      ctx->node_id,
+                                      ws_next_seq(),
+                                      payload);
 
-        mg_websocket_write(conn, MG_WEBSOCKET_OPCODE_TEXT,
-                           frame, strlen(frame));
+        mg_send_websocket_frame(conn,
+                                MG_WEBSOCKET_OPCODE_TEXT,
+                                frame,
+                                strlen(frame));
         free(frame);
     }
 
     cJSON_Delete(root);
-    return 1;                /* keep socket open */
+    return 1;               /* keep socket open */
 }
 
-/* ---------------------- close handler ------------------------------- */
 static void cb_close(const struct mg_connection *conn, void *cbdata)
 {
+    (void)cbdata;
     struct conn_ctx *ctx = mg_get_user_connection_data(conn);
     printf("[MASTER] WS closed (%s)\n",
            ctx && ctx->node_id[0] ? ctx->node_id : "unknown");
     free(ctx);
 }
 
-/* ---------------------- bootstrap ----------------------------------- */
+/* ------------------------------------------------------------------ */
 int ws_server_start(const char *json_path, const char *port)
 {
-    (void)json_path;   /* will use later for real config */
+    (void)json_path;        /* will use later for real config frames */
 
     const char *opts[] = {
         "listening_ports", port,
@@ -103,8 +104,8 @@ int ws_server_start(const char *json_path, const char *port)
                              cb_ready,
                              cb_data,
                              cb_close,
-                             NULL);   /* cbdata for all */
+                             NULL);   /* cbdata to all callbacks */
 
     printf("[MASTER] Civetweb WS listening on :%s\n", port);
-    return 0;           /* ctx persists for program lifetime */
+    return 0;
 }
