@@ -66,7 +66,7 @@ static int cb_data(struct mg_connection *conn, int flags,
     return 1;  /* keep connection open */
 }
 
-static void cb_close(struct mg_connection *conn, void *cbdata)
+static void cb_close(const struct mg_connection *conn, void *cbdata)
 {
     struct conn_ctx *ctx = mg_get_user_connection_data(conn);
     printf("[MASTER] WS closed (%s)\n",
@@ -90,7 +90,8 @@ int ws_server_start(const char *json_path, const char *port)
                              cb_connect,
                              cb_ready,
                              cb_data,
-                             cb_close);
+                             cb_close,
+                             NULL);
 
     printf("[MASTER] Civetweb WS listening on :%s\n", port);
     return 0;
