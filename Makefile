@@ -4,7 +4,7 @@ CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party -DNO_SSL -DUSE_IPV
 LDFLAGS := -lpthread -ldl
 
 # ── source lists ────────────────────────────────────────
-CIVET_SRC := third_party/civetweb.c
+CIVET_SRC := third_party/civetweb/civetweb.c
 COMMON_SRC  := \
     src/config.c \
     src/key_loader.c \
