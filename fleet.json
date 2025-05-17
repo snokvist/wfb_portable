@@ -1,0 +1,117 @@
+{
+  "fleet_id": "fpv-demo-fleet",
+  "passphrase": "CorrectHorseBatteryStaple",
+
+  "nodes": [
+    {
+      "id": "gs-master",
+      "role": "master",
+      "ip": "192.168.2.10",
+      "interfaces": {
+        "bonnet0": { "channel": 149, "bandwidth": 20, "txpower": null },
+        "bonnet1": { "channel": 149, "bandwidth": 20, "txpower": "off" }
+      },
+      "profile": "gs_master"
+    },
+
+    {
+      "id": "gs-local",
+      "role": "node",
+      "ip": "127.0.0.1",
+      "interfaces": {
+        "bonnet0": { "channel": 149, "bandwidth": 20, "txpower": null },
+        "bonnet1": { "channel": 149, "bandwidth": 20, "txpower": "off" }
+      },
+      "profile": "gs_local"
+    }
+  ],
+
+  "profiles": {
+    "gs_master": {
+      "private_key_b64": "UVsWvM8PNjPdT9gsC3YsVh5JjyMrbIAIm41y7MpjjI0lVYT3zzEOTzsd/tnUc//hGKBCmejth1lpXjI0H7UJAA==",
+
+      "init_script": [
+        "iw reg set US",
+        "if which nmcli > /dev/null && ! nmcli device show bonnet0 | grep -q '(unmanaged)'; then nmcli device set bonnet0 managed no; fi",
+        "ip link set bonnet0 down",
+        "iw dev bonnet0 set monitor otherbss",
+        "ip link set bonnet0 up",
+        "iw dev bonnet0 set channel 149 HT20",
+        "if which nmcli > /dev/null && ! nmcli device show bonnet1 | grep -q '(unmanaged)'; then nmcli device set bonnet1 managed no; fi",
+        "ip link set bonnet1 down",
+        "iw dev bonnet1 set monitor otherbss",
+        "ip link set bonnet1 up",
+        "iw dev bonnet1 set channel 149 HT20",
+        "iw dev bonnet1 set txpower fixed -1000"
+      ],
+
+      "commands": {
+        "video_agg_rx":
+          "wfb_rx -a 10000 -p 0 -U /run/wfb_video.sock -K {priv_key_path} -R 2097152 -s 2097152 -l 1000 -i 7669206",
+
+        "mav_agg_tx":
+          "wfb_tx -d -f data -p 144 -u 14451 -K {priv_key_path} -B 20 -G long -S 1 -L 1 -M 1 -k 1 -n 2 -T 0 -F 0 -i 7669206 -R 2097152 -s 2097152 -l 1000 -C 8000 127.0.0.1:11002,11003 192.168.2.30:11001 192.168.2.31:11001",
+
+        "mav_agg_rx":
+          "wfb_rx -a 10001 -p 16 -u 14450 -K {priv_key_path} -R 2097152 -s 2097152 -l 1000 -i 7669206 bonnet0 bonnet1",
+
+        "tun_agg_tx":
+          "wfb_tx -d -f rts -p 160 -u 5001 -K {priv_key_path} -B 20 -G long -S 1 -L 1 -M 1 -k 2 -n 5 -T 0 -F 0 -i 7669206 -R 2097152 -s 2097152 -l 1000 -C 8001 127.0.0.1:11004,11005 192.168.2.30:11002 192.168.2.31:11002",
+
+        "tun_agg_rx":
+          "wfb_rx -a 10002 -p 32 -u 5800 -K {priv_key_path} -R 2097152 -s 2097152 -l 1000 -i 7669206",
+
+        "tun_bridge":
+          "wfb_tun -t wfb-tun -a 10.5.0.1/24 -u 5801 -l 5800 -T 0"
+      },
+
+      "live_cmd_templates": {
+        "set_radio":
+          "wfb_tx_cmd 8000 set_radio -B {bandwidth} -G {gi} -S {stbc} -L {ldpc} -M {mcs}",
+        "set_fec":
+          "wfb_tx_cmd 8000 set_fec -k {fecK} -n {fecN}",
+        "set_power":
+          "iw dev bonnet0 set txpower fixed {power}"
+      }
+    },
+
+    "gs_local": {
+      "init_script": [
+        "iw reg set US",
+        "if which nmcli > /dev/null && ! nmcli device show bonnet0 | grep -q '(unmanaged)'; then nmcli device set bonnet0 managed no; fi",
+        "ip link set bonnet0 down",
+        "iw dev bonnet0 set monitor otherbss",
+        "ip link set bonnet0 up",
+        "iw dev bonnet0 set channel 149 HT20",
+        "if which nmcli > /dev/null && ! nmcli device show bonnet1 | grep -q '(unmanaged)'; then nmcli device set bonnet1 managed no; fi",
+        "ip link set bonnet1 down",
+        "iw dev bonnet1 set monitor otherbss",
+        "ip link set bonnet1 up",
+        "iw dev bonnet1 set channel 149 HT20",
+        "iw dev bonnet1 set txpower fixed -1000"
+      ],
+
+      "commands": {
+        "video_fwd_rx":
+          "wfb_rx -f -c 127.0.0.1 -u 10000 -p 0 -i 7669206 -R 2097152 bonnet0 bonnet1",
+
+        "mav_fwd_rx":
+          "wfb_rx -f -c 127.0.0.1 -u 10001 -p 16 -i 7669206 -R 2097152 bonnet0 bonnet1",
+
+        "mav_fwd_tx":
+          "wfb_tx -I 11002 -R 2097152 bonnet0 bonnet1",
+
+        "tun_fwd_rx":
+          "wfb_rx -f -c 127.0.0.1 -u 10002 -p 32 -i 7669206 -R 2097152 bonnet0 bonnet1",
+
+        "tun_fwd_tx":
+          "wfb_tx -I 11004 -R 2097152 bonnet0 bonnet1"
+      },
+
+      "live_cmd_templates": {
+        "set_radio":
+          "wfb_tx_cmd 8000 set_radio -B {bandwidth} -G {gi} -S {stbc} -L {ldpc} -M {mcs}"
+      }
+    }
+  }
+}
