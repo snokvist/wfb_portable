@@ -1,6 +1,6 @@
 # ── compiler flags ──────────────────────────────────────
 CC      ?= gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party -DNO_SSL -DUSE_IPV6
+CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party -Ithird_party -Ithird_party/civetweb -DNO_SSL -DUSE_IPV6
 LDFLAGS := -lpthread -ldl
 
 # ── source lists ────────────────────────────────────────
