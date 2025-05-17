@@ -98,8 +98,8 @@ int main(int argc,char**argv){
     const char*ip=(argc>1)?argv[1]:"127.0.0.1";
     const char*pt=(argc>2)?argv[2]:"8080";
 
-    int fd=tcp_connect(ip,pt); if(fd<0){perror("conn");return1;}
-    if(ws_handshake(fd,ip,"/ws")){fprintf(stderr,"HS fail\n");return1;}
+    int fd=tcp_connect(ip,pt); if(fd<0){perror("conn");return 1;}
+    if(ws_handshake(fd,ip,"/ws")){fprintf(stderr,"HS fail\n");return 1;}
 
     char*hello=ws_build_hello("gs-local",ws_next_seq(),"node","gs_local","0.1");
     ws_send_text(fd,hello); free(hello);
