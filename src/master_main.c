@@ -7,6 +7,10 @@
 #include <string.h>
 #include "ws_server.h"
 
+
+cJSON *g_root_cfg = NULL;           /* exported for ws_server */
+
+
 /* helper to replace {priv_key_path} placeholder */
 static char *subst_priv_placeholder(const char *cmd, const char *path)
 {
@@ -35,7 +39,9 @@ int main(int argc, char **argv)
         return 1;
     }
     printf("[MASTER] config loaded: %s\n", json_path);
+    g_root_cfg = config_get_root_cjson();   /* new helper */
 
+    
     if (ws_server_start(json_path, "8080") != 0)
     return 1;
 
