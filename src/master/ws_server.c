@@ -6,55 +6,52 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* ---- compatibility layer ------------------------------------------ */
-#ifndef WEBSOCKET_OPCODE_TEXT
-#define WEBSOCKET_OPCODE_TEXT 1
-#endif
-
-/* Newer Civetweb provides mg_send_websocket_frame(), older versions
-   expose mg_websocket_write().  Detect and bridge. */
-#if !defined(HAVE_MG_WEBSOCKET_WRITE) && defined(mg_send_websocket_frame)
-/* Header has only the new symbol — create a thin wrapper */
-static int mg_websocket_write(struct mg_connection *c,
-                              int opcode,
-                              const char *data,
-                              size_t len)
+/* ------------------------------------------------------------------ */
+/* very small helper: send an unmasked text frame (len ≤125)           */
+static int ws_send_text(struct mg_connection *c, const char *txt)
 {
-    return mg_send_websocket_frame(c, opcode, data, len);
-}
-#endif
-/* ------------------------------------------------------------------- */
+    size_t len = strlen(txt);
+    if (len > 125) return -1;                    /* keep prototype simple */
 
-/* Per-connection scratch */
+    unsigned char hdr[2] = { 0x81, (unsigned char)len };  /* FIN | TEXT */
+
+    if (mg_write(c, hdr, 2) != 2) return -1;
+    if (mg_write(c, txt, len) != (int)len) return -1;
+    return 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* per-connection scratch                                             */
 struct conn_ctx { char node_id[64]; };
 
-/* Forward declarations */
-static int  cb_connect(const struct mg_connection *, void *);
-static void cb_ready  (struct mg_connection *, void *);
-static int  cb_data   (struct mg_connection *, int, char *, size_t, void *);
-static void cb_close  (const struct mg_connection *, void *);
+/* Civetweb callback prototypes                                       */
+static int  cb_connect(const struct mg_connection *c, void *cb);
+static void cb_ready  (struct mg_connection *c, void *cb);
+static int  cb_data   (struct mg_connection *c, int flags,
+                       char *data, size_t len, void *cb);
+static void cb_close  (const struct mg_connection *c, void *cb);
 
 /* ------------------ connect ---------------------------------------- */
-static int cb_connect(const struct mg_connection *c, void *cbdata)
+static int cb_connect(const struct mg_connection *c, void *cb)
 {
-    (void)cbdata;
+    (void)cb;
     struct conn_ctx *ctx = calloc(1, sizeof(*ctx));
     mg_set_user_connection_data(c, ctx);
-    return 0;           /* accept */
+    return 0;                       /* accept */
 }
 
 /* ------------------ ready ------------------------------------------ */
-static void cb_ready(struct mg_connection *c, void *cbdata)
+static void cb_ready(struct mg_connection *c, void *cb)
 {
-    (void)c; (void)cbdata;
+    (void)c; (void)cb;
     printf("[MASTER] WS ready\n");
 }
 
 /* ------------------ data ------------------------------------------- */
 static int cb_data(struct mg_connection *c, int flags,
-                   char *data, size_t len, void *cbdata)
+                   char *data, size_t len, void *cb)
 {
-    (void)flags; (void)cbdata;
+    (void)flags; (void)cb;
     struct conn_ctx *ctx = mg_get_user_connection_data(c);
 
     data[len] = '\0';
@@ -70,7 +67,7 @@ static int cb_data(struct mg_connection *c, int flags,
 
         printf("[MASTER] HELLO from %s\n", ctx->node_id);
 
-        /* ── stub config payload ── */
+        /* ---- stub config payload ---- */
         cJSON *pl = cJSON_CreateObject();
         cJSON_AddStringToObject(pl, "note", "config TBD");
 
@@ -79,8 +76,7 @@ static int cb_data(struct mg_connection *c, int flags,
                                       ws_next_seq(),
                                       pl);
 
-        mg_websocket_write(c, WEBSOCKET_OPCODE_TEXT,
-                           frame, strlen(frame));
+        ws_send_text(c, frame);     /* send via raw mg_write() helper */
         free(frame);
     }
 
@@ -89,9 +85,9 @@ static int cb_data(struct mg_connection *c, int flags,
 }
 
 /* ------------------ close ------------------------------------------ */
-static void cb_close(const struct mg_connection *c, void *cbdata)
+static void cb_close(const struct mg_connection *c, void *cb)
 {
-    (void)c; (void)cbdata;
+    (void)c; (void)cb;
     struct conn_ctx *ctx = mg_get_user_connection_data(c);
     printf("[MASTER] WS closed (%s)\n",
            ctx && ctx->node_id[0] ? ctx->node_id : "unknown");
@@ -101,7 +97,7 @@ static void cb_close(const struct mg_connection *c, void *cbdata)
 /* ------------------ bootstrap -------------------------------------- */
 int ws_server_start(const char *json_path, const char *port)
 {
-    (void)json_path;      /* reserved for later */
+    (void)json_path;    /* future use: serve real profile slice */
 
     const char *opts[] = {
         "listening_ports", port,
@@ -119,7 +115,7 @@ int ws_server_start(const char *json_path, const char *port)
                              cb_ready,
                              cb_data,
                              cb_close,
-                             NULL);             /* cbdata */
+                             NULL);
 
     printf("[MASTER] Civetweb WS listening on :%s\n", port);
     return 0;
