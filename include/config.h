@@ -7,27 +7,18 @@
 extern "C" {
 #endif
 
-/* Call once at program start. Returns 0 on success. */
 int  config_load(const char *json_path);
-
-/* Free all internal cJSON allocations. */
 void config_unload(void);
 
-/* ------------------ profile-level getters ------------------ */
-
-/* Returns array of C strings (NULL-terminated). len_out can be NULL.   *
- *  Caller MUST NOT free the returned array nor the strings.            */
+/* profile-level getters */
 const char **config_get_init_script(const char *profile, size_t *len_out);
+const char  *config_get_command    (const char *profile, const char *cmd_key);
+const char  *config_get_template   (const char *profile, const char *tpl_key);
 
-/* Returns single command string for profile/service or NULL.           */
-const char *config_get_command(const char *profile,
-                               const char *command_key);
-
-/* Returns template string (e.g. "set_radio") or NULL.                  */
-const char *config_get_template(const char *profile,
-                                const char *template_key);
+/* generic: fetch an arbitrary string field from a profile (e.g. keys) */
+const char  *config_get_profile_str(const char *profile, const char *field);
 
 #ifdef __cplusplus
 }
 #endif
-#endif /* WFBMGR_CONFIG_H */
+#endif
