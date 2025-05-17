@@ -64,6 +64,11 @@ int main(int argc, char **argv)
         printf("[MASTER] video_agg_rx command not found\n");
     }
 
+    printf("[MASTER] now serving — press Ctrl-C to quit\n");
+    for (;;)
+        pause();        /* <signal.h>; suspends until SIGINT/SIGTERM */
+
+    
     /* simulate run then cleanup */
     unlink(tmp_key);      /* remove directory entry */
     free(tmp_key);
