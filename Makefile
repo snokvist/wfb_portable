@@ -28,12 +28,10 @@ all: $(OUT_BIN) $(OUT_NODE)
 
 # ── linking rules ───────────────────────────────────────
 $(OUT_BIN): $(OUT_DIR) $(COMMON_OBJ) $(MASTER_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Built $@"
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) $(LDFLAGS)
 
 $(OUT_NODE): $(OUT_DIR) $(COMMON_OBJ) $(NODE_OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "Built $@"
+	$(CC) $(CFLAGS) -o $@ $(filter %.o,$^) $(LDFLAGS)
 
 # ── generic pattern for .o ──────────────────────────────
 %.o: %.c
