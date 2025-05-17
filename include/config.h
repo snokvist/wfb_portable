@@ -2,6 +2,7 @@
 #define WFBMGR_CONFIG_H
 
 #include <stddef.h>
+#include "cJSON.h"
 
 #ifdef __cplusplus
 extern "C" {
