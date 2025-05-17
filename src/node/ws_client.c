@@ -59,9 +59,12 @@ static int ws_send_text(int fd, const char *txt)
 
 /* ------------------------------------------------------------------ */
 
-int main(void)
+int main(int argc, char **argv)
 {
-    int fd = tcp_connect("192.168.2.10", "8080");
+    const char *master_ip   = (argc > 1) ? argv[1] : "127.0.0.1";
+    const char *master_port = (argc > 2) ? argv[2] : "8080";
+    
+    int fd = tcp_connect(master_ip, master_port);
     if (fd < 0) { perror("connect"); return 1; }
 
     if (ws_handshake(fd, "192.168.2.10", "/ws") != 0) {
