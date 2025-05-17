@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-
+#include "ws_server.h"
 
 /* helper to replace {priv_key_path} placeholder */
 static char *subst_priv_placeholder(const char *cmd, const char *path)
@@ -27,6 +27,9 @@ static char *subst_priv_placeholder(const char *cmd, const char *path)
 
 int main(int argc, char **argv)
 {
+    if (ws_server_start(json_path, "8080") != 0)
+    return 1;
+    
     const char *json_path = (argc > 1) ? argv[1] : "fleet.json";
 
     if (config_load(json_path) != 0) {
