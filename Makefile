@@ -1,7 +1,7 @@
 # ── compiler flags ──────────────────────────────────────
 CC      ?= gcc
-CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party 
-LDFLAGS :=
+CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party -DNO_SSL -DUSE_IPV6
+LDFLAGS := -lpthread -ldl
 
 # ── source lists ────────────────────────────────────────
 COMMON_SRC  := \
@@ -9,7 +9,8 @@ COMMON_SRC  := \
     src/key_loader.c \
     src/ws_proto.c \
     src/proc_mgr.c \
-    third_party/cJSON.c
+    third_party/cJSON.c \
+    $(CIVET_SRC)
 
 MASTER_SRC  := src/master_main.c src/master/ws_server.c
 NODE_SRC    := src/node/ws_client.c
@@ -20,9 +21,6 @@ NODE_OBJ    := $(NODE_SRC:.c=.o)
 
 CIVET_SRC := third_party/civetweb/civetweb.c
 COMMON_SRC += $(CIVET_SRC)
-CFLAGS    += -DUSE_IPV6
-LDFLAGS   += -lpthread -ldl
-
 
 # ── output locations ───────────────────────────────────
 OUT_DIR  := build
