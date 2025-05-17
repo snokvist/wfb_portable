@@ -4,6 +4,7 @@ CFLAGS  := -std=c11 -Wall -Wextra -O2 -Iinclude -Ithird_party -DNO_SSL -DUSE_IPV
 LDFLAGS := -lpthread -ldl
 
 # ── source lists ────────────────────────────────────────
+CIVET_SRC := third_party/civetweb.c
 COMMON_SRC  := \
     src/config.c \
     src/key_loader.c \
@@ -18,9 +19,6 @@ NODE_SRC    := src/node/ws_client.c
 COMMON_OBJ  := $(COMMON_SRC:.c=.o)
 MASTER_OBJ  := $(MASTER_SRC:.c=.o)
 NODE_OBJ    := $(NODE_SRC:.c=.o)
-
-CIVET_SRC := third_party/civetweb.c
-COMMON_SRC += $(CIVET_SRC)
 
 # ── output locations ───────────────────────────────────
 OUT_DIR  := build
