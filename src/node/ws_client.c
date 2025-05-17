@@ -50,7 +50,13 @@ static int ws_handshake(int fd, const char *host, const char *path)
         if (strstr(buf, "\r\n\r\n"))
             break;                       /* end of headers */
     }
-    return (strstr(buf, " 101 ") != NULL) ? 0 : -1;
+    if (strstr(buf, " 101 ") != NULL)
+        return 0;
+
+    /* Debug dump if handshake failed */
+    fprintf(stderr, "\n--- Handshake response ---\n%.*s\n--------------------------\n",
+            (int)off, buf);
+    return -1;
 }
 
 /* minimal unmasked TEXT frame (payload ≤125) */
