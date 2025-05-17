@@ -69,36 +69,50 @@ static int ws_send_text(int fd, const char *txt)
     return (write(fd, txt, len) == (ssize_t)len) ? 0 : -1;
 }
 
+static void apply_profile(const cJSON *prof)
+{
+    const cJSON *arr = cJSON_GetObjectItem(prof,"init_script");
+    if(cJSON_IsArray(arr)){
+        cJSON *it=NULL;
+        cJSON_ArrayForEach(it,arr){
+            if(cJSON_IsString(it)){
+                system(it->valuestring);      /* simple */
+            }
+        }
+    }
+    const cJSON *cmds=cJSON_GetObjectItem(prof,"commands");
+    if(cJSON_IsObject(cmds)){
+        cJSON *it=NULL;
+        cJSON_ArrayForEach(it,cmds){
+            if(cJSON_IsString(it))
+                proc_spawn_and_watch(it->valuestring); /* one per svc */
+        }
+    }
+}
+
+
+
 /* ------------------------------------------------------------------ */
 
-int main(int argc, char **argv)
-{
-    const char *master_ip   = (argc > 1) ? argv[1] : "127.0.0.1";
-    const char *master_port = (argc > 2) ? argv[2] : "8080";
-    
-    int fd = tcp_connect(master_ip, master_port);
-    if (fd < 0) { perror("connect"); return 1; }
+int main(int argc,char**argv){
+    const char*ip=(argc>1)?argv[1]:"127.0.0.1";
+    const char*pt=(argc>2)?argv[2]:"8080";
 
-    if (ws_handshake(fd, "master_ip", "/ws") != 0) {
-        fprintf(stderr, "handshake failed\n"); close(fd); return 1;
-    }
-    printf("[NODE] WS handshake OK\n");
+    int fd=tcp_connect(ip,pt); if(fd<0){perror("conn");return1;}
+    if(ws_handshake(fd,ip,"/ws")){fprintf(stderr,"HS fail\n");return1;}
 
-    char *hello = ws_build_hello("gs-local", ws_next_seq(),
-                                 "node", "gs_local", "0.1-dev");
-    ws_send_text(fd, hello);
-    free(hello);
-    printf("[NODE] hello sent\n");
+    char*hello=ws_build_hello("gs-local",ws_next_seq(),"node","gs_local","0.1");
+    ws_send_text(fd,hello); free(hello);
 
-    /* Read one server frame (naïve) */
-    unsigned char hdr[2];
-    read(fd, hdr, 2);
-    size_t len = hdr[1] & 0x7F;
-    char *buf = malloc(len + 1);
-    read(fd, buf, len); buf[len] = '\0';
-    printf("[NODE] server frame: %s\n", buf);
-    free(buf);
+    /* wait for one config frame */
+    unsigned char h[2]; read(fd,h,2);
+    size_t len=h[1]&0x7F; char*buf=malloc(len+1); read(fd,buf,len);buf[len]=0;
 
-    close(fd);
+    cJSON *root=cJSON_Parse(buf); free(buf);
+    const cJSON*pl=ws_get_payload(root);
+    apply_profile(pl);                   /* launch processes */
+    cJSON_Delete(root);
+
+    pause();                             /* keep node alive */
     return 0;
 }
