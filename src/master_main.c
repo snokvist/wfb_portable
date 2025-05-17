@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+
 
 /* helper to replace {priv_key_path} placeholder */
 static char *subst_priv_placeholder(const char *cmd, const char *path)
